@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera, ContactShadows } from '@react-three/drei'
 import Model from './Model'
@@ -59,32 +59,76 @@ const ThreeScene = () => {
   )
 }
 
+const FashionSketch = ({ prompt }) => {
+  const [imageUrl, setImageUrl] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [imgLoaded, setImgLoaded] = useState(false)
+
+  useEffect(() => {
+    setLoading(true)
+    setImgLoaded(false)
+    const encodedPrompt = encodeURIComponent(`highly artistic 2D fashion sketch, expressive line drawing illustration, detailed fashion line art with design elements, creative sketch of: ${prompt}, full body figure from head to toe, elegant fashion illustration, minimal line art style, clean background`)
+    const url = `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodedPrompt}&image_size=square_hd`
+    setImageUrl(url)
+  }, [prompt])
+
+  return (
+    <div className="preview-image sketch-image">
+      {loading ? (
+        <div className="sketch-loading">
+          <div className="sketch-outline">
+            <svg viewBox="0 0 200 400" width="200" height="400" className="sketch-svg">
+              <ellipse cx="100" cy="30" rx="20" ry="25" fill="none" stroke="#ddd" strokeWidth="1.5" />
+              <path d="M100 55 L100 100" fill="none" stroke="#ddd" strokeWidth="1.5" />
+              <path d="M80 70 L120 70" fill="none" stroke="#ddd" strokeWidth="1.5" />
+              <path d="M85 100 L70 180 L75 300 L85 380" fill="none" stroke="#ddd" strokeWidth="1.5" />
+              <path d="M115 100 L130 180 L125 300 L115 380" fill="none" stroke="#ddd" strokeWidth="1.5" />
+              <path d="M70 180 L130 180 L120 250 L80 250 Z" fill="none" stroke="#ddd" strokeWidth="1.5" />
+              <path d="M75 300 L125 300" fill="none" stroke="#ddd" strokeWidth="1.5" />
+            </svg>
+          </div>
+          <p className="preview-status">GENERATING SKETCH</p>
+          <p className="preview-subtitle">AI is drawing your design...</p>
+        </div>
+      ) : (
+        <>
+          {!imgLoaded && (
+            <div className="sketch-loading">
+              <div className="sketch-outline">
+                <svg viewBox="0 0 200 400" width="200" height="400" className="sketch-svg">
+                  <ellipse cx="100" cy="30" rx="20" ry="25" fill="none" stroke="#ddd" strokeWidth="1.5" />
+                  <path d="M100 55 L100 100" fill="none" stroke="#ddd" strokeWidth="1.5" />
+                  <path d="M80 70 L120 70" fill="none" stroke="#ddd" strokeWidth="1.5" />
+                  <path d="M85 100 L70 180 L75 300 L85 380" fill="none" stroke="#ddd" strokeWidth="1.5" />
+                  <path d="M115 100 L130 180 L125 300 L115 380" fill="none" stroke="#ddd" strokeWidth="1.5" />
+                  <path d="M70 180 L130 180 L120 250 L80 250 Z" fill="none" stroke="#ddd" strokeWidth="1.5" />
+                  <path d="M75 300 L125 300" fill="none" stroke="#ddd" strokeWidth="1.5" />
+                </svg>
+              </div>
+              <p className="preview-status">LOADING IMAGE</p>
+            </div>
+          )}
+          <img 
+            src={imageUrl} 
+            alt={`Fashion sketch: ${prompt}`}
+            className="sketch-img"
+            style={{ display: imgLoaded ? 'block' : 'none' }}
+            onLoad={() => setImgLoaded(true)}
+            onError={() => {
+              setLoading(true)
+              setTimeout(() => {
+                setLoading(false)
+              }, 2000)
+            }}
+          />
+        </>
+      )}
+    </div>
+  )
+}
+
 const DesignPreview = () => {
   const { currentDesign, generationStatus } = useDesignStore()
-
-  const getColorFromPrompt = (prompt) => {
-    if (!prompt) return 'linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%)'
-    const lower = prompt.toLowerCase()
-    if (lower.includes('red') || lower.includes('红')) return 'linear-gradient(135deg, #dc2626 0%, #f87171 100%)'
-    if (lower.includes('blue') || lower.includes('蓝')) return 'linear-gradient(135deg, #2563eb 0%, #60a5fa 100%)'
-    if (lower.includes('green') || lower.includes('绿')) return 'linear-gradient(135deg, #16a34a 0%, #4ade80 100%)'
-    if (lower.includes('black') || lower.includes('黑')) return 'linear-gradient(135deg, #1a1a2e 0%, #333333 100%)'
-    if (lower.includes('white') || lower.includes('白')) return 'linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%)'
-    if (lower.includes('pink') || lower.includes('粉')) return 'linear-gradient(135deg, #ec4899 0%, #f9a8d4 100%)'
-    if (lower.includes('gold') || lower.includes('金')) return 'linear-gradient(135deg, #d4af37 0%, #f4e4ba 100%)'
-    if (lower.includes('purple') || lower.includes('紫')) return 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)'
-    return 'linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%)'
-  }
-
-  const getDressEmoji = (prompt) => {
-    if (!prompt) return ''
-    const lower = prompt.toLowerCase()
-    if (lower.includes('dress') || lower.includes('礼服') || lower.includes('裙')) return ''
-    if (lower.includes('suit') || lower.includes('套装')) return '🤵'
-    if (lower.includes('coat') || lower.includes('外套')) return '🧥'
-    if (lower.includes('shirt') || lower.includes('衬衫')) return '👔'
-    return '👗'
-  }
 
   if (generationStatus === 'generating' || generationStatus === 'processing') {
     return (
@@ -105,16 +149,10 @@ const DesignPreview = () => {
     return (
       <div className="scene-preview completed">
         <div className="preview-content">
-          <div 
-            className="preview-image" 
-            style={{ background: getColorFromPrompt(currentDesign.prompt) }}
-          >
-            <span className="preview-emoji-main">{getDressEmoji(currentDesign.prompt)}</span>
-          </div>
+          <FashionSketch prompt={currentDesign.prompt} />
           <div className="preview-details">
             <p className="preview-label">DESIGN PREVIEW</p>
             <h3 className="preview-title">{currentDesign.title}</h3>
-            <p className="preview-prompt">"{currentDesign.prompt}"</p>
             <span className="preview-style">{currentDesign.style}</span>
           </div>
         </div>
@@ -147,7 +185,7 @@ const SceneContainer = () => {
         <DesignPreview />
         <div className="scene-overlay">
           <p className="scene-hint">
-            {generationStatus === 'completed' ? '✨ DESIGN GENERATED' : 'ENTER YOUR VISION TO CREATE'}
+            {generationStatus === 'completed' ? '✨ SKETCH GENERATED' : 'ENTER YOUR VISION TO CREATE'}
           </p>
         </div>
       </div>

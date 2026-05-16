@@ -1,11 +1,33 @@
 import { create } from 'zustand'
 import { api } from '../config/api.js'
 
+const STORAGE_KEY = 'starrystudio-designs'
+
+const getStoredDesigns = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
+  }
+}
+
+const saveStoredDesigns = (designs) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(designs))
+  } catch {}
+}
+
 let useBackend = true
+
+const loadDesigns = () => {
+  const stored = getStoredDesigns()
+  return stored
+}
 
 export const useDesignStore = create((set, get) => ({
   currentDesign: null,
-  designsList: [],
+  designsList: loadDesigns(),
   generationProgress: 0,
   generationStatus: 'idle',
   isLoading: false,
@@ -26,14 +48,14 @@ export const useDesignStore = create((set, get) => ({
     
     if (!useBackend) {
       await new Promise(r => setTimeout(r, 2000))
+      const newDesigns = [mockDesign, ...get().designsList]
+      saveStoredDesigns(newDesigns)
       set({ 
         currentDesign: mockDesign,
+        designsList: newDesigns,
         isLoading: false,
         generationStatus: 'completed'
       })
-      set(state => ({
-        designsList: [mockDesign, ...state.designsList]
-      }))
       return { success: true, design: mockDesign }
     }
     
@@ -50,11 +72,13 @@ export const useDesignStore = create((set, get) => ({
           const statusData = await api.get(`/designs/status/${data.design.id}`)
           if (statusData.design.status === 'completed') {
             clearInterval(pollInterval)
+            const newDesigns = [statusData.design, ...get().designsList]
+            saveStoredDesigns(newDesigns)
             set({ 
               generationStatus: 'completed',
-              currentDesign: statusData.design
+              currentDesign: statusData.design,
+              designsList: newDesigns
             })
-            get().fetchDesigns()
           }
         } catch (error) {
           clearInterval(pollInterval)
@@ -67,89 +91,55 @@ export const useDesignStore = create((set, get) => ({
       console.warn('Backend API unavailable, using mock generation:', error.message)
       useBackend = false
       await new Promise(r => setTimeout(r, 2000))
+      const newDesigns = [mockDesign, ...get().designsList]
+      saveStoredDesigns(newDesigns)
       set({ 
         currentDesign: mockDesign,
+        designsList: newDesigns,
         isLoading: false,
         generationStatus: 'completed'
       })
-      set(state => ({
-        designsList: [mockDesign, ...state.designsList]
-      }))
       return { success: true, design: mockDesign }
     }
   },
   
   fetchDesigns: async () => {
-    set({ isLoading: true, error: null })
-    if (!useBackend) {
-      set({ isLoading: false })
-      return
-    }
-    try {
-      const data = await api.get('/designs')
-      set({ designsList: data.designs, isLoading: false })
-    } catch (error) {
-      useBackend = false
-      set({ isLoading: false })
+    const stored = getStoredDesigns()
+    set({ designsList: stored, isLoading: false })
+    
+    if (useBackend) {
+      try {
+        const data = await api.get('/designs')
+        saveStoredDesigns(data.designs)
+        set({ designsList: data.designs, isLoading: false })
+      } catch (error) {
+        useBackend = false
+      }
     }
   },
   
   saveDesign: async (designData) => {
     set({ isLoading: true, error: null })
-    if (!useBackend) {
-      const newDesign = { id: Date.now().toString(), ...designData, createdAt: new Date().toISOString() }
-      set(state => ({
-        designsList: [newDesign, ...state.designsList],
-        currentDesign: newDesign,
-        isLoading: false
-      }))
-      return { success: true, design: newDesign }
-    }
-    try {
-      const data = await api.post('/designs', designData)
-      set(state => ({
-        designsList: [data.design, ...state.designsList],
-        currentDesign: data.design,
-        isLoading: false
-      }))
-      return data
-    } catch (error) {
-      useBackend = false
-      const newDesign = { id: Date.now().toString(), ...designData, createdAt: new Date().toISOString() }
-      set(state => ({
-        designsList: [newDesign, ...state.designsList],
-        currentDesign: newDesign,
-        isLoading: false
-      }))
-      return { success: true, design: newDesign }
-    }
+    const newDesign = { id: Date.now().toString(), ...designData, createdAt: new Date().toISOString() }
+    const newDesigns = [newDesign, ...get().designsList]
+    saveStoredDesigns(newDesigns)
+    set({
+      designsList: newDesigns,
+      currentDesign: newDesign,
+      isLoading: false
+    })
+    return { success: true, design: newDesign }
   },
   
   deleteDesign: async (id) => {
     set({ isLoading: true, error: null })
-    if (!useBackend) {
-      set(state => ({
-        designsList: state.designsList.filter(d => d.id !== id),
-        currentDesign: state.currentDesign?.id === id ? null : state.currentDesign,
-        isLoading: false
-      }))
-      return { success: true }
-    }
-    try {
-      await api.delete(`/designs/${id}`)
-      set(state => ({
-        designsList: state.designsList.filter(d => d.id !== id),
-        currentDesign: state.currentDesign?.id === id ? null : state.currentDesign,
-        isLoading: false
-      }))
-    } catch (error) {
-      useBackend = false
-      set(state => ({
-        designsList: state.designsList.filter(d => d.id !== id),
-        currentDesign: state.currentDesign?.id === id ? null : state.currentDesign,
-        isLoading: false
-      }))
-    }
+    const newDesigns = get().designsList.filter(d => d.id !== id)
+    saveStoredDesigns(newDesigns)
+    set({
+      designsList: newDesigns,
+      currentDesign: get().currentDesign?.id === id ? null : get().currentDesign,
+      isLoading: false
+    })
   },
   
   setCurrentDesign: (design) => {
