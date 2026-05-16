@@ -1,4 +1,16 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'
+const isPreview = typeof window !== 'undefined' && (
+  window.location.hostname.includes('agent-sandbox') ||
+  window.location.hostname.includes('trae') ||
+  window.location.hostname.includes('.cn')
+)
+
+const backendHost = isPreview ? window.location.hostname.replace(/run-agent-[^-]*-preview/, 'run-agent-$1') : null
+
+// In preview: use the preview domain's /api path (Vite proxy handles it on localhost)
+// In local dev: use direct localhost:3001
+export const API_BASE_URL = isPreview
+  ? '/api'
+  : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api')
 
 export const api = {
   get: async (endpoint) => {
