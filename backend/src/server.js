@@ -1,0 +1,53 @@
+import express from 'express'
+import cors from 'cors'
+import http from 'http'
+import { Server as SocketServer } from 'socket.io'
+import dotenv from 'dotenv'
+import designRoutes from './routes/designs.js'
+import authRoutes from './routes/auth.js'
+
+dotenv.config()
+
+const app = express()
+const server = http.createServer(app)
+const io = new SocketServer(server, {
+  cors: {
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    methods: ['GET', 'POST', 'PUT', 'DELETE']
+  }
+})
+
+const PORT = process.env.PORT || 3001
+
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173'
+}))
+app.use(express.json())
+
+app.use('/api/designs', designRoutes)
+app.use('/api/auth', authRoutes)
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'StarryStudio API is running' })
+})
+
+io.on('connection', (socket) => {
+  console.log('Client connected:', socket.id)
+
+  socket.on('join-room', (userId) => {
+    socket.join(`user-${userId}`)
+    console.log(`User ${userId} joined room`)
+  })
+
+  socket.on('design-update', (data) => {
+    socket.to(`user-${data.userId}`).emit('design-synced', data)
+  })
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id)
+  })
+})
+
+server.listen(PORT, () => {
+  console.log(`StarryStudio API server running on port ${PORT}`)
+})
