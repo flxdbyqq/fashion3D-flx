@@ -5,6 +5,37 @@
   background: #f8f8f8;
 }
 
+.scene-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f8f8;
+}
+
+.placeholder-content {
+  text-align: center;
+}
+
+.placeholder-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.placeholder-text {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #333333;
+  margin-bottom: 0.5rem;
+}
+
+.placeholder-hint {
+  font-size: 0.875rem;
+  color: #999999;
+}
+
 .scene-overlay {
   position: absolute;
   bottom: 20px;
