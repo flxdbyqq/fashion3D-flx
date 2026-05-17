@@ -8,11 +8,14 @@ import designRoutes from './routes/designs.js'
 import authRoutes from './routes/auth.js'
 
 dotenv.config()
-connectDB()
+
+const isVercel = !!process.env.VERCEL || process.env.NODE_ENV === 'production'
+
+if (!isVercel) {
+  await connectDB()
+}
 
 const app = express()
-
-const isVercel = process.env.VERCEL || process.env.NODE_ENV === 'production'
 
 if (!isVercel) {
   const server = http.createServer(app)
@@ -50,11 +53,17 @@ app.use(express.json())
 app.use('/api/designs', designRoutes)
 app.use('/api/auth', authRoutes)
 
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  if (!isVercel) {
+    await connectDB()
+  }
   res.json({ status: 'ok', message: 'StarryStudio API is running' })
 })
 
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
+  if (!isVercel) {
+    await connectDB()
+  }
   res.json({ status: 'ok', message: 'StarryStudio API' })
 })
 
