@@ -3,10 +3,12 @@ import cors from 'cors'
 import http from 'http'
 import { Server as SocketServer } from 'socket.io'
 import dotenv from 'dotenv'
+import connectDB from './config/db.js'
 import designRoutes from './routes/designs.js'
 import authRoutes from './routes/auth.js'
 
 dotenv.config()
+connectDB()
 
 const app = express()
 const server = http.createServer(app)

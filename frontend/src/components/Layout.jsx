@@ -1,11 +1,19 @@
 import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../stores/authStore'
 import './Layout.css'
 
 const Layout = ({ children }) => {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { isAuthenticated, user, logout } = useAuthStore()
   
   const isActive = (path) => location.pathname === path
+
+  const handleLogout = () => {
+    logout()
+    navigate('/auth')
+  }
 
   return (
     <div className="layout">
@@ -24,9 +32,18 @@ const Layout = ({ children }) => {
             <Link to="/gallery" className={`nav-link ${isActive('/gallery') ? 'active' : ''}`}>
               GALLERY
             </Link>
-            <Link to="/profile" className={`nav-link ${isActive('/profile') ? 'active' : ''}`}>
-              PROFILE
-            </Link>
+            {isAuthenticated ? (
+              <div className="nav-user">
+                <span className="nav-username">{user?.name}</span>
+                <button className="nav-logout-btn" onClick={handleLogout}>
+                  LOGOUT
+                </button>
+              </div>
+            ) : (
+              <Link to="/auth" className={`nav-link ${isActive('/auth') ? 'active' : ''}`}>
+                SIGN IN
+              </Link>
+            )}
           </nav>
         </div>
       </header>

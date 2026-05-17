@@ -63,13 +63,17 @@ const FashionSketch = ({ prompt }) => {
   const [imageUrl, setImageUrl] = useState('')
   const [loading, setLoading] = useState(true)
   const [imgLoaded, setImgLoaded] = useState(false)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     setLoading(true)
     setImgLoaded(false)
+    setError(false)
     const encodedPrompt = encodeURIComponent(`highly artistic 2D fashion sketch, expressive line drawing illustration, detailed fashion line art with design elements, creative sketch of: ${prompt}, full body figure from head to toe, elegant fashion illustration, minimal line art style, clean background`)
     const url = `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodedPrompt}&image_size=square_hd`
     setImageUrl(url)
+    const timer = setTimeout(() => setLoading(false), 2000)
+    return () => clearTimeout(timer)
   }, [prompt])
 
   return (
@@ -92,7 +96,7 @@ const FashionSketch = ({ prompt }) => {
         </div>
       ) : (
         <>
-          {!imgLoaded && (
+          {!imgLoaded && !error && (
             <div className="sketch-loading">
               <div className="sketch-outline">
                 <svg viewBox="0 0 200 400" width="200" height="400" className="sketch-svg">
@@ -108,18 +112,19 @@ const FashionSketch = ({ prompt }) => {
               <p className="preview-status">LOADING IMAGE</p>
             </div>
           )}
+          {error && (
+            <div className="sketch-loading">
+              <p className="preview-status">IMAGE UNAVAILABLE</p>
+              <p className="preview-subtitle">Prompt: {prompt}</p>
+            </div>
+          )}
           <img 
             src={imageUrl} 
             alt={`Fashion sketch: ${prompt}`}
             className="sketch-img"
             style={{ display: imgLoaded ? 'block' : 'none' }}
             onLoad={() => setImgLoaded(true)}
-            onError={() => {
-              setLoading(true)
-              setTimeout(() => {
-                setLoading(false)
-              }, 2000)
-            }}
+            onError={() => setError(true)}
           />
         </>
       )}

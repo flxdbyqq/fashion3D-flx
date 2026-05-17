@@ -6,6 +6,7 @@ const DesignThumbnail = ({ prompt, style, id }) => {
   const [imageUrl, setImageUrl] = useState('')
   const [loading, setLoading] = useState(true)
   const [imgLoaded, setImgLoaded] = useState(false)
+  const [error, setError] = useState(false)
 
   const getColor = (prompt) => {
     if (!prompt) return '#f0f0f0'
@@ -26,9 +27,12 @@ const DesignThumbnail = ({ prompt, style, id }) => {
   useEffect(() => {
     setLoading(true)
     setImgLoaded(false)
+    setError(false)
     const encodedPrompt = encodeURIComponent(`highly artistic 2D fashion sketch, expressive line drawing illustration, detailed fashion line art with design elements, creative sketch of: ${prompt}, full body figure from head to toe, elegant fashion illustration, minimal line art style, clean background`)
     const url = `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodedPrompt}&image_size=square_hd`
     setImageUrl(url)
+    const timer = setTimeout(() => setLoading(false), 2000)
+    return () => clearTimeout(timer)
   }, [prompt])
 
   return (
@@ -46,9 +50,14 @@ const DesignThumbnail = ({ prompt, style, id }) => {
         </div>
       ) : (
         <>
-          {!imgLoaded && (
+          {!imgLoaded && !error && (
             <div className="design-placeholder" style={{ borderTopColor: color }}>
               <p style={{ fontSize: '0.7rem', marginTop: '0.5rem', opacity: 0.5 }}>LOADING...</p>
+            </div>
+          )}
+          {error && (
+            <div className="design-placeholder" style={{ borderTopColor: color }}>
+              <p style={{ fontSize: '0.65rem', marginTop: '0.5rem', opacity: 0.5 }}>FAILED</p>
             </div>
           )}
           <img 
@@ -57,12 +66,7 @@ const DesignThumbnail = ({ prompt, style, id }) => {
             className="design-sketch-img"
             style={{ display: imgLoaded ? 'block' : 'none' }}
             onLoad={() => setImgLoaded(true)}
-            onError={() => {
-              setLoading(true)
-              setTimeout(() => {
-                setLoading(false)
-              }, 2000)
-            }}
+            onError={() => setError(true)}
           />
         </>
       )}
@@ -71,22 +75,35 @@ const DesignThumbnail = ({ prompt, style, id }) => {
 }
 
 const Gallery = () => {
-  const { designsList } = useDesignStore()
-  const [list, setList] = useState(designsList)
+  const { designsList, fetchDesigns } = useDesignStore()
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const stored = localStorage.getItem('starrystudio-designs')
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        if (parsed.length > 0) {
-          setList(parsed)
-        }
-      } catch {}
+    const loadDesigns = async () => {
+      setIsLoading(true)
+      await fetchDesigns()
+      setIsLoading(false)
     }
-  }, [])
+    loadDesigns()
+  }, [fetchDesigns])
 
-  if (list.length === 0) {
+  if (isLoading) {
+    return (
+      <div className="gallery">
+        <div className="container">
+          <div className="gallery-header">
+            <h1 className="gallery-title">GALLERY</h1>
+          </div>
+          <div className="gallery-empty">
+            <span className="gallery-empty-icon">⏳</span>
+            <h3>Loading...</h3>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (designsList.length === 0) {
     return (
       <div className="gallery">
         <div className="container">
@@ -109,14 +126,14 @@ const Gallery = () => {
         <div className="gallery-header">
           <h1 className="gallery-title">GALLERY</h1>
           <div className="gallery-filters">
-            <button className="filter-btn active">ALL ({list.length})</button>
+            <button className="filter-btn active">ALL ({designsList.length})</button>
           </div>
         </div>
 
         <div className="gallery-grid">
-          {list.map((design, index) => (
-            <div key={design.id} className="design-card" style={{ animationDelay: `${index * 0.1}s` }}>
-              <DesignThumbnail prompt={design.prompt} style={design.style} />
+          {designsList.map((design, index) => (
+            <div key={design.id || design._id} className="design-card" style={{ animationDelay: `${index * 0.1}s` }}>
+              <DesignThumbnail prompt={design.prompt} style={design.style} id={design.id || design._id} />
               <div className="design-info">
                 <h3 className="design-title">{design.title}</h3>
                 <div className="design-meta">
