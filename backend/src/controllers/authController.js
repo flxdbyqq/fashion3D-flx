@@ -1,8 +1,10 @@
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
+import connectDB from '../config/db.js'
 
 export const register = async (req, res) => {
   try {
+    await connectDB()
     const { email, password, name } = req.body
 
     if (!email || !password || !name) {
@@ -34,12 +36,13 @@ export const register = async (req, res) => {
     })
   } catch (error) {
     console.error('Register error:', error)
-    res.status(500).json({ success: false, message: 'Failed to register' })
+    res.status(500).json({ success: false, message: error.message || 'Failed to register' })
   }
 }
 
 export const login = async (req, res) => {
   try {
+    await connectDB()
     const { email, password } = req.body
 
     if (!email || !password) {
@@ -69,7 +72,7 @@ export const login = async (req, res) => {
     })
   } catch (error) {
     console.error('Login error:', error)
-    res.status(500).json({ success: false, message: 'Failed to login' })
+    res.status(500).json({ success: false, message: error.message || 'Failed to login' })
   }
 }
 
@@ -79,12 +82,13 @@ export const logout = async (req, res) => {
 
 export const getProfile = async (req, res) => {
   try {
+    await connectDB()
     const user = await User.findById(req.userId).select('-password')
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' })
     }
     res.json({ success: true, user })
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to get profile' })
+    res.status(500).json({ success: false, message: error.message || 'Failed to get profile' })
   }
 }
