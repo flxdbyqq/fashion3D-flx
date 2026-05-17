@@ -1,7 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import http from 'http'
-import { Server as SocketServer } from 'socket.io'
+import { Server as SocketIO } from 'socket.io'
 import dotenv from 'dotenv'
 import connectDB from './config/db.js'
 import designRoutes from './routes/designs.js'
@@ -9,17 +9,31 @@ import authRoutes from './routes/auth.js'
 
 dotenv.config()
 
-const isVercel = !!process.env.VERCEL || process.env.NODE_ENV === 'production'
-
-if (!isVercel) {
-  await connectDB()
-}
+const isVercel = !!process.env.VERCEL || !!process.env.NOW_REGION
 
 const app = express()
 
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true
+}))
+app.use(express.json())
+
+app.use('/api/designs', designRoutes)
+app.use('/api/auth', authRoutes)
+
+app.get('/api/health', async (req, res) => {
+  res.json({ status: 'ok', message: 'StarryStudio API is running' })
+})
+
+app.get('/', async (req, res) => {
+  res.json({ status: 'ok', message: 'StarryStudio API' })
+})
+
 if (!isVercel) {
+  connectDB()
   const server = http.createServer(app)
-  const io = new SocketServer(server, {
+  const io = new SocketIO(server, {
     cors: {
       origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
       methods: ['GET', 'POST', 'PUT', 'DELETE']
@@ -44,27 +58,5 @@ if (!isVercel) {
     console.log(`StarryStudio API server running on port ${PORT}`)
   })
 }
-
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*'
-}))
-app.use(express.json())
-
-app.use('/api/designs', designRoutes)
-app.use('/api/auth', authRoutes)
-
-app.get('/api/health', async (req, res) => {
-  if (!isVercel) {
-    await connectDB()
-  }
-  res.json({ status: 'ok', message: 'StarryStudio API is running' })
-})
-
-app.get('/', async (req, res) => {
-  if (!isVercel) {
-    await connectDB()
-  }
-  res.json({ status: 'ok', message: 'StarryStudio API' })
-})
 
 export default app

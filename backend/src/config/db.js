@@ -1,16 +1,31 @@
 import mongoose from 'mongoose'
 
-let isConnected = false
+const MONGODB_URI = process.env.MONGODB_URI
+
+if (!MONGODB_URI) {
+  console.warn('MONGODB_URI not set - database operations will fail')
+}
+
+let mongooseConnection = null
+let connectingPromise = null
 
 const connectDB = async () => {
-  if (isConnected) return
-  
+  if (mongooseConnection) return mongooseConnection
+  if (!MONGODB_URI) throw new Error('MONGODB_URI environment variable is required')
+  if (connectingPromise) return connectingPromise
+
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI)
-    isConnected = true
-    console.log(`MongoDB connected: ${conn.connection.host}`)
+    connectingPromise = mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000
+    })
+    const conn = await connectingPromise
+    mongooseConnection = conn.connection
+    console.log('MongoDB connected')
+    return mongooseConnection
   } catch (error) {
-    console.error(`MongoDB connection error: ${error.message}`)
+    connectingPromise = null
+    throw error
   }
 }
 
