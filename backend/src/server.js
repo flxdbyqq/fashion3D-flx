@@ -11,18 +11,39 @@ dotenv.config()
 connectDB()
 
 const app = express()
-const server = http.createServer(app)
-const io = new SocketServer(server, {
-  cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-    methods: ['GET', 'POST', 'PUT', 'DELETE']
-  }
-})
 
-const PORT = process.env.PORT || 3001
+const isVercel = process.env.VERCEL || process.env.NODE_ENV === 'production'
+
+if (!isVercel) {
+  const server = http.createServer(app)
+  const io = new SocketServer(server, {
+    cors: {
+      origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+      methods: ['GET', 'POST', 'PUT', 'DELETE']
+    }
+  })
+
+  io.on('connection', (socket) => {
+    console.log('Client connected:', socket.id)
+    socket.on('join-room', (userId) => {
+      socket.join(`user-${userId}`)
+    })
+    socket.on('design-update', (data) => {
+      socket.to(`user-${data.userId}`).emit('design-synced', data)
+    })
+    socket.on('disconnect', () => {
+      console.log('Client disconnected:', socket.id)
+    })
+  })
+
+  const PORT = process.env.PORT || 3001
+  server.listen(PORT, () => {
+    console.log(`StarryStudio API server running on port ${PORT}`)
+  })
+}
 
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173'
+  origin: process.env.CORS_ORIGIN || '*'
 }))
 app.use(express.json())
 
@@ -33,23 +54,8 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'StarryStudio API is running' })
 })
 
-io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id)
-
-  socket.on('join-room', (userId) => {
-    socket.join(`user-${userId}`)
-    console.log(`User ${userId} joined room`)
-  })
-
-  socket.on('design-update', (data) => {
-    socket.to(`user-${data.userId}`).emit('design-synced', data)
-  })
-
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id)
-  })
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'StarryStudio API' })
 })
 
-server.listen(PORT, () => {
-  console.log(`StarryStudio API server running on port ${PORT}`)
-})
+export default app
