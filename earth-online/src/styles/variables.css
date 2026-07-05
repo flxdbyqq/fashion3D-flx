@@ -1,0 +1,41 @@
+:root {
+  --color-bg: #0a0a0a;
+  --color-surface: #141414;
+  --color-surface-alt: #1a1a1a;
+  --color-border: #2a2a2a;
+  --color-border-light: #3a3a3a;
+
+  --color-danger: #ff2a2a;
+  --color-danger-glow: rgba(255, 42, 42, 0.6);
+  --color-danger-dim: #aa1515;
+
+  --color-data: #00ff88;
+  --color-data-dim: #00aa55;
+  --color-data-glow: rgba(0, 255, 136, 0.4);
+
+  --color-warning: #ff8c00;
+  --color-warning-glow: rgba(255, 140, 0, 0.5);
+
+  --color-rust: #8b4513;
+  --color-rust-light: #a0522d;
+
+  --color-text: #e0e0e0;
+  --color-text-dim: #888;
+  --color-text-muted: #555;
+  --color-text-bright: #ffffff;
+
+  --font-mono: 'Share Tech Mono', 'Courier New', monospace;
+  --font-sans: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-marker: 'Permanent Marker', cursive;
+
+  --hud-height: 64px;
+  --choice-panel-height: 240px;
+
+  --glitch-duration: 0.3s;
+  --warning-pulse-slow: 2s;
+  --warning-pulse-fast: 0.8s;
+
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.6s ease;
+}
